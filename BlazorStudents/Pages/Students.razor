@@ -1,48 +1,45 @@
 ﻿@page "/students"
 @inject HttpClient Http
+@inject NavigationManager NavManager
 
 <PageTitle>Students</PageTitle>
 
 <h1>Students</h1>
 
-@if (students == null)
+@if (studentProvider == null)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>School</th>
-                <th></th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in students)
-            {
-                <tr>
-                    <td>@item.StudentId</td>
-                    <td>@item.FirstName</td>
-                    <td>@item.LastName</td>
-                    <td>@item.School</td>
-                    <td><a class="btn btn-success btn-sm" href="/update/@item.StudentId">edit</a></td>
-                    <td><a class="btn btn-danger btn-sm" href="/delete/@item.StudentId">del</a></td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="grid" tabindex="-1">
+        <QuickGrid ItemsProvider="@studentProvider" Virtualize="true">
+            <PropertyColumn Title="Student Id" Property="@(s => s.StudentId)"/>
+            <PropertyColumn Title="First Name" Property="@(s => s.FirstName)"/>
+            <PropertyColumn Title="Last Name" Property="@(s => s.LastName)"/>
+            <PropertyColumn Property="@(s => s.School)"/>
+        </QuickGrid>
+    </div>
 }
 
 @code {
-    private Student[]? students;
+    private GridItemsProvider<Student>? studentProvider;
 
     protected override async Task OnInitializedAsync()
     {
-        students = await Http.GetFromJsonAsync<Student[]>($"{Constants.BASE_URL}api/students");
+
+        studentProvider = async req =>
+        {
+            var url = NavManager.GetUriWithQueryParameters($"{Constants.BASE_URL}api/students", new Dictionary<string, object?>
+            {
+                { "skip", req.StartIndex },
+                { "limit", req.Count },
+            });
+
+            var response = await Http.GetFromJsonAsync<Student[]>(url, req.CancellationToken);
+            return GridItemsProviderResult.From(
+                items: response!,
+                totalItemCount: response!.Length);
+        };
     }
 }
