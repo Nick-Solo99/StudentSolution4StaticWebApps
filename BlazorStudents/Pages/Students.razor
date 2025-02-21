@@ -6,14 +6,14 @@
 
 <h1>Students</h1>
 
-@if (studentProvider == null)
+@if (students == null)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
     <div class="grid" tabindex="-1">
-        <QuickGrid ItemsProvider="@studentProvider" Virtualize="true">
+        <QuickGrid Items="@students">
             <PropertyColumn Title="Student Id" Property="@(s => s.StudentId)"/>
             <PropertyColumn Title="First Name" Property="@(s => s.FirstName)"/>
             <PropertyColumn Title="Last Name" Property="@(s => s.LastName)"/>
@@ -23,23 +23,11 @@ else
 }
 
 @code {
-    private GridItemsProvider<Student>? studentProvider;
+    private IQueryable<Student>? students;
 
     protected override async Task OnInitializedAsync()
     {
-
-        studentProvider = async req =>
-        {
-            var url = NavManager.GetUriWithQueryParameters($"{Constants.BASE_URL}api/students", new Dictionary<string, object?>
-            {
-                { "skip", req.StartIndex },
-                { "limit", req.Count },
-            });
-
-            var response = await Http.GetFromJsonAsync<Student[]>(url, req.CancellationToken);
-            return GridItemsProviderResult.From(
-                items: response!,
-                totalItemCount: response!.Length);
-        };
+        var studentList = await Http.GetFromJsonAsync<Student[]>($"{Constants.BASE_URL}api/students");
+        students = studentList?.AsQueryable();
     }
 }
